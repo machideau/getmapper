@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initMap();
     await refreshData();
     setupEventListeners();
+    initCustomSelect();
 });
 
 function initMap() {
@@ -76,6 +77,48 @@ function setupEventListeners() {
     });
 }
 
+function initCustomSelect() {
+    const container = document.getElementById('type-select-container');
+    const trigger = document.getElementById('select-trigger');
+    const options = document.querySelectorAll('.option');
+    const hiddenInput = document.getElementById('location-type');
+    const selectedText = document.getElementById('selected-type-text');
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        container.classList.toggle('open');
+    });
+
+    options.forEach(option => {
+        option.addEventListener('click', () => {
+            const val = option.dataset.value;
+            setCustomSelectValue(val);
+            container.classList.remove('open');
+        });
+    });
+
+    document.addEventListener('click', () => {
+        container.classList.remove('open');
+    });
+}
+
+function setCustomSelectValue(val) {
+    const hiddenInput = document.getElementById('location-type');
+    const selectedText = document.getElementById('selected-type-text');
+    const options = document.querySelectorAll('.option');
+
+    hiddenInput.value = val;
+    selectedText.textContent = val;
+
+    options.forEach(opt => {
+        if (opt.dataset.value === val) {
+            opt.classList.add('selected');
+        } else {
+            opt.classList.remove('selected');
+        }
+    });
+}
+
 async function refreshData() {
     allLocations = await Storage.getAll();
     renderList();
@@ -112,7 +155,7 @@ function captureLocation() {
             document.getElementById('location-id').value = '';
             document.getElementById('location-name').value = '';
             document.getElementById('location-description').value = '';
-            document.getElementById('location-type').value = 'Autre';
+            setCustomSelectValue('Autre');
             
             showCaptureCard();
             
@@ -304,7 +347,7 @@ function startEdit(loc) {
     document.getElementById('location-id').value = loc.id;
     document.getElementById('location-name').value = loc.name;
     document.getElementById('location-description').value = loc.description || '';
-    document.getElementById('location-type').value = loc.type || 'Autre';
+    setCustomSelectValue(loc.type || 'Autre');
     
     // Set campus radio
     const radio = document.querySelector(`input[name="campus"][value="${loc.campus}"]`);

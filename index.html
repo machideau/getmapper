@@ -46,15 +46,23 @@
                         </label>
                     </div>
                     <div class="input-group">
-                        <select id="location-type">
-                            <option value="Amphi">Amphi</option>
-                            <option value="Salle de cours">Salle de cours</option>
-                            <option value="Bureau">Bureau</option>
-                            <option value="Labo">Labo</option>
-                            <option value="Cafétéria">Cafétéria</option>
-                            <option value="Bibliothèque">Bibliothèque</option>
-                            <option value="Autre" selected>Autre</option>
-                        </select>
+                        <div class="custom-select" id="type-select-container">
+                            <div class="select-trigger" id="select-trigger">
+                                <span id="selected-type-text">Autre</span>
+                                <svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                            </div>
+                            <div class="select-options" id="select-options">
+                                <div class="option" data-value="Amphi">Amphi</div>
+                                <div class="option" data-value="Salle de cours">Salle de cours</div>
+                                <div class="option" data-value="Bureau">Bureau</div>
+                                <div class="option" data-value="Labo">Labo</div>
+                                <div class="option" data-value="Cafétéria">Cafétéria</div>
+                                <div class="option" data-value="Bibliothèque">Bibliothèque</div>
+                                <div class="option selected" data-value="Autre">Autre</div>
+                            </div>
+                            <input type="hidden" id="location-type" value="Autre">
+                        </div>
+                        
                         <input type="text" id="location-name" placeholder="Nom de la salle ou bâtiment..." autocomplete="off">
                         <textarea id="location-description" placeholder="Description du bâtiment ou de la salle..." rows="2"></textarea>
                         <input type="hidden" id="location-id">
