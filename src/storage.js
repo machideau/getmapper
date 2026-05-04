@@ -16,6 +16,7 @@ export const Storage = {
             .insert([{
                 name: location.name,
                 campus: location.campus,
+                type: location.type || 'Autre',
                 lat: location.lat,
                 lng: location.lng
             }]);
@@ -50,5 +51,22 @@ export const Storage = {
             console.error('Error deleting from Supabase:', error);
             throw error;
         }
+    },
+
+    async update(id, location) {
+        const { data, error } = await _supabase
+            .from('locations')
+            .update({
+                name: location.name,
+                campus: location.campus,
+                type: location.type
+            })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error updating Supabase:', error);
+            throw error;
+        }
+        return data;
     }
 };

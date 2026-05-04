@@ -408,3 +408,114 @@ input:focus {
 .leaflet-control-attribution {
     background: rgba(0,0,0,0.5) !important;
 }
+
+/* New UI Elements */
+.search-box {
+    margin-bottom: 15px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 10px 15px;
+    font-size: 0.9rem;
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.filter-tab {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 8px;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.filter-tab.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 14px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: 0.3s;
+    appearance: none;
+    cursor: pointer;
+}
+
+select:focus {
+    border-color: var(--primary);
+}
+
+.action-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.nav-btn {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.3s;
+}
+
+.nav-btn:hover {
+    background: #10b981;
+    color: white;
+}
+
+.edit-btn {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.3s;
+}
+
+.edit-btn:hover {
+    background: #f59e0b;
+    color: white;
+}
+
+.type-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-dim);
+}
+
+/* Marker Cluster Customization */
+.marker-cluster-small { background-color: rgba(139, 92, 246, 0.6); }
+.marker-cluster-small div { background-color: rgba(139, 92, 246, 0.8); color: white; }
+.marker-cluster-medium { background-color: rgba(99, 102, 241, 0.6); }
+.marker-cluster-medium div { background-color: rgba(99, 102, 241, 0.8); color: white; }
+.marker-cluster-large { background-color: rgba(16, 185, 129, 0.6); }
+.marker-cluster-large div { background-color: rgba(16, 185, 129, 0.8); color: white; }
