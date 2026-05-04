@@ -71,12 +71,21 @@ function captureLocation() {
     const status = document.getElementById('status-indicator');
     const btn = document.getElementById('get-btn');
     
+    // Check for secure context (HTTPS)
+    if (!window.isSecureContext) {
+        alert("❌ Erreur de sécurité : La géolocalisation nécessite une connexion HTTPS (ou localhost). Si vous testez sur mobile, assurez-vous d'utiliser une URL sécurisée.");
+        return;
+    }
+
     status.classList.remove('hidden');
     btn.style.opacity = '0.5';
     btn.disabled = true;
 
     if (!navigator.geolocation) {
         alert('La géolocalisation n\'est pas supportée par votre navigateur.');
+        status.classList.add('hidden');
+        btn.style.opacity = '1';
+        btn.disabled = false;
         return;
     }
 
@@ -101,13 +110,31 @@ function captureLocation() {
             btn.disabled = false;
         },
         (error) => {
-            console.error(error);
-            alert('Impossible de récupérer votre position.');
+            console.error('Geolocation Error:', error);
+            let msg = 'Impossible de récupérer votre position.';
+            
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    msg = "L'accès à la localisation a été refusé. Veuillez l'autoriser dans les paramètres de votre navigateur.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    msg = "Les informations de localisation sont indisponibles.";
+                    break;
+                case error.TIMEOUT:
+                    msg = "La demande de localisation a expiré.";
+                    break;
+            }
+            
+            alert(msg);
             status.classList.add('hidden');
             btn.style.opacity = '1';
             btn.disabled = false;
         },
-        { enableHighAccuracy: true }
+        { 
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
     );
 }
 
