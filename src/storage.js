@@ -15,6 +15,7 @@ export const Storage = {
             .from('locations')
             .insert([{
                 name: location.name,
+                campus: location.campus,
                 lat: location.lat,
                 lng: location.lng
             }]);

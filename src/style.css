@@ -116,6 +116,40 @@ h3 {
     text-align: center;
 }
 
+.campus-selection {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.campus-selection label {
+    flex: 1;
+    cursor: pointer;
+}
+
+.campus-selection input {
+    display: none;
+}
+
+.campus-selection span {
+    display: block;
+    padding: 10px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    transition: 0.3s;
+    color: var(--text-dim);
+}
+
+.campus-selection input:checked + span {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 0 15px var(--primary-glow);
+}
+
 .input-group {
     display: flex;
     flex-direction: column;
@@ -230,6 +264,27 @@ input:focus {
 .loc-info h4 {
     font-size: 1rem;
     margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.campus-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.campus-badge.sud {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+}
+
+.campus-badge.nord {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
 }
 
 .loc-info p {

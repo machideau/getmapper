@@ -33,10 +33,20 @@
                     <div class="coords">
                         <span id="lat">0.0000</span>, <span id="lng">0.0000</span>
                     </div>
-                    <div class="input-group">
-                        <input type="text" id="location-name" placeholder="Nom de la salle ou bâtiment..." autocomplete="off">
-                        <button id="save-btn" class="primary-btn">Sauvegarder</button>
-                    </div>
+                <div class="campus-selection">
+                    <label>
+                        <input type="radio" name="campus" value="Sud" checked>
+                        <span>Campus Sud</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="campus" value="Nord">
+                        <span>Campus Nord</span>
+                    </label>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="location-name" placeholder="Nom de la salle ou bâtiment..." autocomplete="off">
+                    <button id="save-btn" class="primary-btn">Sauvegarder</button>
+                </div>
                     <button id="cancel-btn" class="text-btn">Annuler</button>
                 </div>
 

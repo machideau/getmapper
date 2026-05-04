@@ -153,8 +153,10 @@ function hideCaptureCard() {
 }
 
 async function saveLocation(name) {
+    const campus = document.querySelector('input[name="campus"]:checked').value;
     const newLocation = {
         name: name,
+        campus: campus,
         lat: tempCoords.lat,
         lng: tempCoords.lng
     };
@@ -187,9 +189,10 @@ async function renderList() {
     locations.forEach(loc => {
         const item = document.createElement('div');
         item.className = 'location-item';
+        const campusClass = loc.campus.toLowerCase();
         item.innerHTML = `
             <div class="loc-info">
-                <h4>${loc.name}</h4>
+                <h4>${loc.name} <span class="campus-badge ${campusClass}">${loc.campus}</span></h4>
                 <p>${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}</p>
                 <p style="font-size: 10px; opacity: 0.6">${new Date(loc.created_at).toLocaleString('fr-FR')}</p>
             </div>
