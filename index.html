@@ -11,59 +11,55 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <link rel="stylesheet" href="style.css">
 </head>
 <body class="dark-theme">
-    <div id="map"></div>
-    
-    <div class="overlay">
-        <header>
-            <h1>UK <span>Mapper</span></h1>
-            <p>Database des Salles & Bâtiments</p>
-        </header>
+    <div id="app">
+        <div id="map"></div>
+        
+        <div class="overlay">
+            <header>
+                <h1>UK <span>Mapper</span></h1>
+                <p>Database des Salles & Bâtiments</p>
+            </header>
 
-        <main>
-            <div id="status-indicator" class="hidden">
-                <div class="pulse"></div>
-                <span id="status-text">Localisation en cours...</span>
+            <main>
+                <div id="status-indicator" class="hidden">
+                    <div class="pulse"></div>
+                    <span id="status-text">Localisation en cours...</span>
+                </div>
+
+                <div id="capture-card" class="glass-card hidden">
+                    <h3>Nouvelle Position</h3>
+                    <div class="coords">
+                        <span id="lat">0.0000</span>, <span id="lng">0.0000</span>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="location-name" placeholder="Nom de la salle ou bâtiment..." autocomplete="off">
+                        <button id="save-btn" class="primary-btn">Sauvegarder</button>
+                    </div>
+                    <button id="cancel-btn" class="text-btn">Annuler</button>
+                </div>
+
+                <div id="list-container">
+                    <div class="list-header">
+                        <h2>Positions Enregistrées</h2>
+                        <span id="count">0</span>
+                    </div>
+                    <div id="location-list" class="scrollable">
+                        <div class="empty-state">Chargement...</div>
+                    </div>
+                </div>
+            </main>
+
+            <div class="fab-container">
+                <button id="get-btn" class="fab">
+                    <span class="icon">GET</span>
+                    <span class="label">POSITION</span>
+                </button>
             </div>
-
-            <div id="capture-card" class="glass-card hidden">
-                <h3>Nouvelle Position</h3>
-                <div class="coords">
-                    <span id="lat">0.0000</span>, <span id="lng">0.0000</span>
-                </div>
-                <div class="input-group">
-                    <input type="text" id="location-name" placeholder="Nom de la salle ou bâtiment..." autocomplete="off">
-                    <button id="save-btn" class="primary-btn">Sauvegarder</button>
-                </div>
-                <button id="cancel-btn" class="text-btn">Annuler</button>
-            </div>
-
-            <div id="list-container">
-                <div class="list-header">
-                    <h2>Positions Enregistrées</h2>
-                    <span id="count">0</span>
-                </div>
-                <div id="location-list" class="scrollable">
-                    <!-- Items will be injected here -->
-                    <div class="empty-state">Aucune position enregistrée.</div>
-                </div>
-            </div>
-        </main>
-
-        <div class="fab-container">
-            <button id="get-btn" class="fab">
-                <span class="icon">GET</span>
-                <span class="label">POSITION</span>
-            </button>
         </div>
     </div>
 
-    <!-- Supabase JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="storage.js"></script>
-    <script src="app.js"></script>
+    <script type="module" src="/src/main.js"></script>
 </body>
 </html>

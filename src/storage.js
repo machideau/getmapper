@@ -1,9 +1,15 @@
-const SUPABASE_URL = 'https://dzksjelewcqrjpfmzogu.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6a3NqZWxld2NxcmpwZm16b2d1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAwNDIwOCwiZXhwIjoyMDg4NTgwMjA4fQ.Ogv8C9HKaKNv-sC4MRjiWBanZt4zikCaY8A9O8NeZdI';
+import { createClient } from '@supabase/supabase-js';
 
-const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
 
-const Storage = {
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.error('Supabase credentials missing! Check your .env file.');
+}
+
+const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+export const Storage = {
     async save(location) {
         const { data, error } = await _supabase
             .from('locations')

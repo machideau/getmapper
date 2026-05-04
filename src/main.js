@@ -1,3 +1,7 @@
+import './style.css';
+import L from 'leaflet';
+import { Storage } from './storage';
+
 let map;
 let currentMarker;
 let tempCoords = null;
@@ -29,6 +33,8 @@ function setupEventListeners() {
     const saveBtn = document.getElementById('save-btn');
     const cancelBtn = document.getElementById('cancel-btn');
     const input = document.getElementById('location-name');
+
+    if (!getBtn) return; // Prevent errors if elements aren't loaded
 
     getBtn.addEventListener('click', captureLocation);
     
@@ -135,6 +141,8 @@ async function renderList() {
     const list = document.getElementById('location-list');
     const count = document.getElementById('count');
     
+    if (!list) return;
+
     // Clear existing markers first
     map.eachLayer((layer) => {
         if (layer instanceof L.Marker && layer !== currentMarker) map.removeLayer(layer);
@@ -158,7 +166,7 @@ async function renderList() {
                 <p>${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}</p>
                 <p style="font-size: 10px; opacity: 0.6">${new Date(loc.created_at).toLocaleString('fr-FR')}</p>
             </div>
-            <button class="delete-btn" onclick="deleteLoc(${loc.id})">
+            <button class="delete-btn" data-id="${loc.id}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                 </svg>
@@ -169,6 +177,9 @@ async function renderList() {
             if (e.target.closest('.delete-btn')) return;
             map.setView([loc.lat, loc.lng], 18);
         });
+
+        const deleteBtn = item.querySelector('.delete-btn');
+        deleteBtn.addEventListener('click', () => deleteLoc(loc.id));
         
         list.appendChild(item);
 
@@ -188,5 +199,3 @@ async function deleteLoc(id) {
         }
     }
 }
-
-window.deleteLoc = deleteLoc;
