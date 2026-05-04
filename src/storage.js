@@ -17,6 +17,7 @@ export const Storage = {
                 name: location.name,
                 campus: location.campus,
                 type: location.type || 'Autre',
+                description: location.description,
                 lat: location.lat,
                 lng: location.lng
             }]);
@@ -59,7 +60,8 @@ export const Storage = {
             .update({
                 name: location.name,
                 campus: location.campus,
-                type: location.type
+                type: location.type,
+                description: location.description
             })
             .eq('id', id);
 

@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS locations (
     name TEXT NOT NULL,
     campus TEXT NOT NULL,
     type TEXT DEFAULT 'Autre',
+    description TEXT,
     lat DOUBLE PRECISION NOT NULL,
     lng DOUBLE PRECISION NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -12,3 +13,4 @@ CREATE TABLE IF NOT EXISTS locations (
 -- To update existing table:
 -- ALTER TABLE locations ADD COLUMN type TEXT DEFAULT 'Autre';
 -- ALTER TABLE locations ADD COLUMN campus TEXT DEFAULT 'Sud';
+-- ALTER TABLE locations ADD COLUMN description TEXT;

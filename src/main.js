@@ -111,6 +111,7 @@ function captureLocation() {
             // Reset fields for NEW position
             document.getElementById('location-id').value = '';
             document.getElementById('location-name').value = '';
+            document.getElementById('location-description').value = '';
             document.getElementById('location-type').value = 'Autre';
             
             showCaptureCard();
@@ -154,6 +155,7 @@ function hideCaptureCard() {
 
 async function handleSave() {
     const name = document.getElementById('location-name').value.trim();
+    const description = document.getElementById('location-description').value.trim();
     const id = document.getElementById('location-id').value;
     const type = document.getElementById('location-type').value;
     const campus = document.querySelector('input[name="campus"]:checked').value;
@@ -170,10 +172,10 @@ async function handleSave() {
     try {
         if (id) {
             // Update
-            await Storage.update(id, { name, campus, type });
+            await Storage.update(id, { name, campus, type, description });
         } else {
             // Create
-            await Storage.save({ name, campus, type, lat: tempCoords.lat, lng: tempCoords.lng });
+            await Storage.save({ name, campus, type, description, lat: tempCoords.lat, lng: tempCoords.lng });
         }
         await refreshData();
         hideCaptureCard();
@@ -222,6 +224,7 @@ function renderList() {
                 <div style="display:flex; gap:5px; margin: 4px 0;">
                     <span class="type-badge">${loc.type || 'Autre'}</span>
                 </div>
+                ${loc.description ? `<p class="loc-description">${loc.description}</p>` : ''}
                 <p>${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}</p>
             </div>
             <div class="action-btns">
@@ -288,7 +291,11 @@ function renderList() {
         });
 
         const marker = L.marker([loc.lat, loc.lng], { icon: customIcon })
-            .bindPopup(`<b>${loc.name}</b><br>${loc.type || 'Autre'}`);
+            .bindPopup(`
+                <b>${loc.name}</b><br>
+                <i style="font-size: 11px;">${loc.type || 'Autre'}</i>
+                ${loc.description ? `<p style="font-size: 12px; margin-top: 5px; border-top: 1px solid #eee; pt-5">${loc.description}</p>` : ''}
+            `);
         markerClusterGroup.addLayer(marker);
     });
 }
@@ -296,6 +303,7 @@ function renderList() {
 function startEdit(loc) {
     document.getElementById('location-id').value = loc.id;
     document.getElementById('location-name').value = loc.name;
+    document.getElementById('location-description').value = loc.description || '';
     document.getElementById('location-type').value = loc.type || 'Autre';
     
     // Set campus radio
