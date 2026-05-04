@@ -3,15 +3,13 @@ let currentMarker;
 let tempCoords = null;
 
 // Initialize App
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     initMap();
-    renderList();
+    await renderList();
     setupEventListeners();
 });
 
 function initMap() {
-    // Default UK area (approximateKatanga coordinates or placeholder)
-    // UK is often used for University of Katanga (-11.66, 27.48)
     const defaultCoords = [-11.6607, 27.4842];
     
     map = L.map('map', {
@@ -23,7 +21,6 @@ function initMap() {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Add scale
     L.control.scale({ position: 'bottomleft' }).addTo(map);
 }
 
@@ -35,13 +32,24 @@ function setupEventListeners() {
 
     getBtn.addEventListener('click', captureLocation);
     
-    saveBtn.addEventListener('click', () => {
+    saveBtn.addEventListener('click', async () => {
         const name = input.value.trim();
         if (!name) {
             alert('Veuillez entrer un nom pour cette position.');
             return;
         }
-        saveLocation(name);
+        
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Enregistrement...';
+        
+        try {
+            await saveLocation(name);
+        } catch (err) {
+            alert('Erreur lors de la sauvegarde.');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Sauvegarder';
+        }
     });
 
     cancelBtn.addEventListener('click', () => {
@@ -71,14 +79,11 @@ function captureLocation() {
             const { latitude, longitude } = position.coords;
             tempCoords = { lat: latitude, lng: longitude };
             
-            // Update UI
             document.getElementById('lat').textContent = latitude.toFixed(6);
             document.getElementById('lng').textContent = longitude.toFixed(6);
             
-            // Show Card
             showCaptureCard();
             
-            // Update Map
             map.setView([latitude, longitude], 18);
             if (currentMarker) map.removeLayer(currentMarker);
             currentMarker = L.marker([latitude, longitude]).addTo(map)
@@ -91,7 +96,7 @@ function captureLocation() {
         },
         (error) => {
             console.error(error);
-            alert('Impossible de récupérer votre position. Vérifiez vos permissions.');
+            alert('Impossible de récupérer votre position.');
             status.classList.add('hidden');
             btn.style.opacity = '1';
             btn.disabled = false;
@@ -114,30 +119,28 @@ function hideCaptureCard() {
     tempCoords = null;
 }
 
-function saveLocation(name) {
+async function saveLocation(name) {
     const newLocation = {
-        id: Date.now(),
         name: name,
         lat: tempCoords.lat,
-        lng: tempCoords.lng,
-        timestamp: new Date().toLocaleString('fr-FR')
+        lng: tempCoords.lng
     };
 
-    Storage.save(newLocation);
-    renderList();
+    await Storage.save(newLocation);
+    await renderList();
     hideCaptureCard();
-    
-    // Add permanent marker
-    L.marker([newLocation.lat, newLocation.lng])
-        .addTo(map)
-        .bindPopup(`<b>${newLocation.name}</b><br>${newLocation.timestamp}`);
 }
 
-function renderList() {
+async function renderList() {
     const list = document.getElementById('location-list');
     const count = document.getElementById('count');
-    const locations = Storage.getAll();
     
+    // Clear existing markers first
+    map.eachLayer((layer) => {
+        if (layer instanceof L.Marker && layer !== currentMarker) map.removeLayer(layer);
+    });
+
+    const locations = await Storage.getAll();
     count.textContent = locations.length;
     
     if (locations.length === 0) {
@@ -153,7 +156,7 @@ function renderList() {
             <div class="loc-info">
                 <h4>${loc.name}</h4>
                 <p>${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}</p>
-                <p style="font-size: 10px; opacity: 0.6">${loc.timestamp}</p>
+                <p style="font-size: 10px; opacity: 0.6">${new Date(loc.created_at).toLocaleString('fr-FR')}</p>
             </div>
             <button class="delete-btn" onclick="deleteLoc(${loc.id})">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -169,24 +172,21 @@ function renderList() {
         
         list.appendChild(item);
 
-        // Also add markers for all saved locations
         L.marker([loc.lat, loc.lng])
             .addTo(map)
             .bindPopup(`<b>${loc.name}</b>`);
     });
 }
 
-function deleteLoc(id) {
+async function deleteLoc(id) {
     if (confirm('Voulez-vous supprimer cette position ?')) {
-        Storage.delete(id);
-        renderList();
-        // Refresh map markers
-        map.eachLayer((layer) => {
-            if (layer instanceof L.Marker) map.removeLayer(layer);
-        });
-        renderList(); // Re-adds markers
+        try {
+            await Storage.delete(id);
+            await renderList();
+        } catch (err) {
+            alert('Erreur lors de la suppression.');
+        }
     }
 }
 
-// Global expose for onclick
 window.deleteLoc = deleteLoc;
