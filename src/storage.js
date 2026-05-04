@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+const SUPABASE_URL = import.meta.env.SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.SUPABASE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.error('Supabase credentials missing! Check your .env file.');
@@ -18,7 +18,7 @@ export const Storage = {
                 lat: location.lat,
                 lng: location.lng
             }]);
-        
+
         if (error) {
             console.error('Error saving to Supabase:', error);
             throw error;
@@ -31,7 +31,7 @@ export const Storage = {
             .from('locations')
             .select('*')
             .order('created_at', { ascending: false });
-        
+
         if (error) {
             console.error('Error fetching from Supabase:', error);
             return [];
@@ -44,7 +44,7 @@ export const Storage = {
             .from('locations')
             .delete()
             .eq('id', id);
-        
+
         if (error) {
             console.error('Error deleting from Supabase:', error);
             throw error;
