@@ -10,6 +10,9 @@ let allLocations = [];
 let markerClusterGroup;
 let currentFilter = 'all';
 let currentSearch = '';
+let stream = null;
+let capturedBlobs = [];
+let existingUrls = [];
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
@@ -17,11 +20,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     await refreshData();
     setupEventListeners();
     initCustomSelect();
+
+    // Subscribe to real-time updates
+    Storage.subscribeToChanges(() => {
+        refreshData();
+    });
 });
 
 function initMap() {
     const defaultCoords = [-11.6607, 27.4842];
-    
+
     map = L.map('map', {
         zoomControl: false,
         attributionControl: true
@@ -32,7 +40,7 @@ function initMap() {
     }).addTo(map);
 
     L.control.scale({ position: 'bottomleft' }).addTo(map);
-    
+
     markerClusterGroup = L.markerClusterGroup({
         showCoverageOnHover: false,
         maxClusterRadius: 50
@@ -49,7 +57,7 @@ function setupEventListeners() {
     const filterTabs = document.querySelectorAll('.filter-tab');
 
     if (getBtn) getBtn.addEventListener('click', captureLocation);
-    
+
     if (saveBtn) saveBtn.addEventListener('click', handleSave);
 
     if (cancelBtn) cancelBtn.addEventListener('click', hideCaptureCard);
@@ -75,6 +83,12 @@ function setupEventListeners() {
             renderList();
         });
     });
+
+    const captureBtn = document.getElementById('capture-btn');
+    const shutterBtn = document.getElementById('shutter-btn');
+
+    if (captureBtn) captureBtn.addEventListener('click', toggleCamera);
+    if (shutterBtn) shutterBtn.addEventListener('click', takePhoto);
 }
 
 function initCustomSelect() {
@@ -127,9 +141,9 @@ async function refreshData() {
 function captureLocation() {
     const status = document.getElementById('status-indicator');
     const btn = document.getElementById('get-btn');
-    
+
     if (!window.isSecureContext) {
-        alert("❌ Erreur de sécurité : La géolocalisation nécessite HTTPS.");
+        showToast("Erreur de sécurité : La géolocalisation nécessite HTTPS.", "error");
         return;
     }
 
@@ -137,7 +151,7 @@ function captureLocation() {
     btn.classList.add('hidden');
 
     if (!navigator.geolocation) {
-        alert('Géolocalisation non supportée.');
+        showToast('Géolocalisation non supportée.', 'error');
         status.classList.add('hidden');
         btn.classList.remove('hidden');
         return;
@@ -147,18 +161,22 @@ function captureLocation() {
         (position) => {
             const { latitude, longitude } = position.coords;
             tempCoords = { lat: latitude, lng: longitude };
-            
+
             document.getElementById('lat').textContent = latitude.toFixed(6);
             document.getElementById('lng').textContent = longitude.toFixed(6);
-            
+
             // Reset fields for NEW position
             document.getElementById('location-id').value = '';
             document.getElementById('location-name').value = '';
             document.getElementById('location-description').value = '';
             setCustomSelectValue('Autre');
-            
+
+            // Reset photo
+            existingUrls = [];
+            resetCamera();
+
             showCaptureCard();
-            
+
             map.setView([latitude, longitude], 18);
             if (currentMarker) map.removeLayer(currentMarker);
             currentMarker = L.marker([latitude, longitude]).addTo(map)
@@ -168,7 +186,7 @@ function captureLocation() {
             status.classList.add('hidden');
         },
         (error) => {
-            alert('Erreur de localisation : ' + error.message);
+            showToast('Erreur de localisation : ' + error.message, 'error');
             status.classList.add('hidden');
             btn.classList.remove('hidden');
         },
@@ -180,32 +198,136 @@ function showCaptureCard(isEdit = false) {
     const card = document.getElementById('capture-card');
     const title = card.querySelector('h3');
     const saveBtn = document.getElementById('save-btn');
-    
+
     title.textContent = isEdit ? 'Modifier Position' : 'Nouvelle Position';
     saveBtn.textContent = isEdit ? 'Mettre à jour' : 'Sauvegarder';
-    
+
     card.classList.remove('hidden');
+    document.getElementById('list-container').classList.add('hidden');
     document.getElementById('get-btn').classList.add('hidden');
     document.getElementById('location-name').focus();
 }
 
 function hideCaptureCard() {
     document.getElementById('capture-card').classList.add('hidden');
+    document.getElementById('list-container').classList.remove('hidden');
     document.getElementById('get-btn').classList.remove('hidden');
     if (currentMarker) map.removeLayer(currentMarker);
     tempCoords = null;
+    stopCamera();
+}
+
+async function toggleCamera() {
+    if (!stream) {
+        await startCamera();
+    } else {
+        stopCamera();
+    }
+}
+
+async function startCamera() {
+    const video = document.getElementById('video');
+    const cameraContainer = document.getElementById('camera-container');
+    const captureBtn = document.getElementById('capture-btn');
+
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' },
+            audio: false
+        });
+        video.srcObject = stream;
+        cameraContainer.classList.remove('hidden');
+        captureBtn.querySelector('span').textContent = 'Fermer la caméra';
+    } catch (err) {
+        showToast('Impossible d\'accéder à la caméra : ' + err.message, 'error');
+    }
+}
+
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    document.getElementById('camera-container').classList.add('hidden');
+    const captureBtn = document.getElementById('capture-btn');
+    if (captureBtn) captureBtn.querySelector('span').textContent = 'Ajouter des photos';
+}
+
+function takePhoto() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+
+    canvas.toBlob((blob) => {
+        const id = Date.now();
+        capturedBlobs.push({ id, blob });
+        updateGallery();
+    }, 'image/jpeg', 0.8);
+}
+
+function updateGallery() {
+    const gallery = document.getElementById('photo-gallery');
+    gallery.innerHTML = '';
+
+    if (capturedBlobs.length > 0 || existingUrls.length > 0) {
+        gallery.classList.remove('hidden');
+    } else {
+        gallery.classList.add('hidden');
+    }
+
+    // Render existing URLs
+    existingUrls.forEach((url, index) => {
+        const div = document.createElement('div');
+        div.className = 'gallery-item';
+        div.innerHTML = `
+            <img src="${url}">
+            <button class="remove-photo">&times;</button>
+        `;
+        div.querySelector('.remove-photo').addEventListener('click', () => {
+            existingUrls.splice(index, 1);
+            updateGallery();
+        });
+        gallery.appendChild(div);
+    });
+
+    // Render new Blobs
+    capturedBlobs.forEach((item, index) => {
+        const url = URL.createObjectURL(item.blob);
+        const div = document.createElement('div');
+        div.className = 'gallery-item';
+        div.innerHTML = `
+            <img src="${url}">
+            <button class="remove-photo" data-id="${item.id}">&times;</button>
+        `;
+        div.querySelector('.remove-photo').addEventListener('click', () => {
+            capturedBlobs = capturedBlobs.filter(b => b.id !== item.id);
+            updateGallery();
+        });
+        gallery.appendChild(div);
+    });
+}
+
+function resetCamera() {
+    capturedBlobs = [];
+    updateGallery();
+    stopCamera();
 }
 
 async function handleSave() {
-    const name = document.getElementById('location-name').value.trim();
+    const nameInput = document.getElementById('location-name');
+    const name = nameInput.value.trim();
     const description = document.getElementById('location-description').value.trim();
     const id = document.getElementById('location-id').value;
     const type = document.getElementById('location-type').value;
-    const campus = document.querySelector('input[name="campus"]:checked').value;
+    const campusRadio = document.querySelector('input[name="campus"]:checked');
+    const campus = campusRadio ? campusRadio.value : 'Sud';
     const saveBtn = document.getElementById('save-btn');
 
     if (!name) {
-        alert('Veuillez entrer un nom.');
+        showToast('Veuillez entrer un nom.', 'info');
         return;
     }
 
@@ -213,26 +335,49 @@ async function handleSave() {
     saveBtn.textContent = 'Patientez...';
 
     try {
+        const imageUrls = [...existingUrls];
+
+        if (capturedBlobs.length > 0) {
+            const cleanName = name.replace(/\s+/g, '_').toLowerCase();
+            const cleanCampus = campus.toLowerCase();
+
+            // Upload all images in parallel
+            const uploadPromises = capturedBlobs.map(async (item, index) => {
+                const fileName = `${cleanName}_${cleanCampus}_${index}.jpg`;
+                return await Storage.uploadImage(item.blob, fileName);
+            });
+
+            const results = await Promise.all(uploadPromises);
+            imageUrls.push(...results);
+        }
+
+        const locationData = { name, campus, type, description, image_urls: imageUrls };
+
         if (id) {
             // Update
-            await Storage.update(id, { name, campus, type, description });
+            await Storage.update(id, locationData);
         } else {
             // Create
-            await Storage.save({ name, campus, type, description, lat: tempCoords.lat, lng: tempCoords.lng });
+            locationData.lat = tempCoords.lat;
+            locationData.lng = tempCoords.lng;
+            await Storage.save(locationData);
         }
         await refreshData();
         hideCaptureCard();
+        showToast(id ? 'Position mise à jour !' : 'Position enregistrée !', 'success');
     } catch (err) {
-        alert('Erreur lors de l\'enregistrement.');
+        console.error(err);
+        showToast('Erreur lors de l\'enregistrement : ' + (err.message || 'Erreur inconnue'), 'error');
     } finally {
         saveBtn.disabled = false;
+        saveBtn.textContent = id ? 'Mettre à jour' : 'Sauvegarder';
     }
 }
 
 function renderList() {
     const list = document.getElementById('location-list');
     const countSpan = document.getElementById('count');
-    
+
     if (!list) return;
 
     // Filter locations
@@ -243,7 +388,7 @@ function renderList() {
     });
 
     countSpan.textContent = filtered.length;
-    
+
     // Clear Map
     markerClusterGroup.clearLayers();
 
@@ -257,39 +402,46 @@ function renderList() {
         const item = document.createElement('div');
         item.className = 'location-item';
         const campusClass = loc.campus.toLowerCase();
-        
+
         item.innerHTML = `
-            <div class="loc-info">
-                <h4>
-                    ${loc.name} 
-                    <span class="campus-badge ${campusClass}">${loc.campus}</span>
-                </h4>
-                <div style="display:flex; gap:5px; margin: 4px 0;">
-                    <span class="type-badge">${loc.type || 'Autre'}</span>
+            <div class="item-top">
+                <div class="loc-info">
+                    <h4>
+                        ${loc.name} 
+                        <span class="campus-badge ${campusClass}">${loc.campus}</span>
+                    </h4>
+                    <div style="display:flex; gap:5px; margin: 4px 0;">
+                        <span class="type-badge">${loc.type || 'Autre'}</span>
+                    </div>
+                    ${loc.description ? `<p class="loc-description">${loc.description}</p>` : ''}
+                    <p>${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}</p>
                 </div>
-                ${loc.description ? `<p class="loc-description">${loc.description}</p>` : ''}
-                <p>${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}</p>
+                <div class="action-btns">
+                    <button class="nav-btn" title="Itinéraire">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </button>
+                    <button class="edit-btn" title="Modifier">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </button>
+                    <button class="delete-btn" title="Supprimer">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
-            <div class="action-btns">
-                <button class="nav-btn" title="Itinéraire">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                        <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                </button>
-                <button class="edit-btn" title="Modifier">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                    </svg>
-                </button>
-                <button class="delete-btn" title="Supprimer">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                </button>
-            </div>
+            ${loc.image_urls && loc.image_urls.length > 0 ? `
+                <div class="images-container">
+                    ${loc.image_urls.map(url => `<img src="${url}" loading="lazy">`).join('')}
+                </div>
+            ` : ''}
         `;
-        
+
         item.addEventListener('click', (e) => {
             if (e.target.closest('button')) return;
             map.setView([loc.lat, loc.lng], 18);
@@ -298,7 +450,7 @@ function renderList() {
         item.querySelector('.nav-btn').addEventListener('click', () => openInMaps(loc.lat, loc.lng));
         item.querySelector('.edit-btn').addEventListener('click', () => startEdit(loc));
         item.querySelector('.delete-btn').addEventListener('click', () => deleteLoc(loc.id));
-        
+
         list.appendChild(item);
 
         // Add to Cluster with specific icons
@@ -348,19 +500,24 @@ function startEdit(loc) {
     document.getElementById('location-name').value = loc.name;
     document.getElementById('location-description').value = loc.description || '';
     setCustomSelectValue(loc.type || 'Autre');
-    
+
     // Set campus radio
     const radio = document.querySelector(`input[name="campus"][value="${loc.campus}"]`);
     if (radio) radio.checked = true;
-    
+
     // Set coords display
     document.getElementById('lat').textContent = loc.lat.toFixed(6);
     document.getElementById('lng').textContent = loc.lng.toFixed(6);
-    
+
     tempCoords = { lat: loc.lat, lng: loc.lng };
-    
+
+    // Load existing images
+    existingUrls = [...(loc.image_urls || [])];
+    capturedBlobs = [];
+    updateGallery();
+
     showCaptureCard(true);
-    
+
     map.setView([loc.lat, loc.lng], 18);
     if (currentMarker) map.removeLayer(currentMarker);
     currentMarker = L.marker([loc.lat, loc.lng]).addTo(map)
@@ -369,14 +526,64 @@ function startEdit(loc) {
 }
 
 async function deleteLoc(id) {
-    if (confirm('Voulez-vous supprimer cette position ?')) {
+    showConfirm('Voulez-vous supprimer cette position ?', async () => {
         try {
             await Storage.delete(id);
             await refreshData();
+            showToast('Position supprimée !', 'success');
         } catch (err) {
-            alert('Erreur lors de la suppression.');
+            showToast('Erreur lors de la suppression.', 'error');
         }
-    }
+    });
+}
+
+function showConfirm(message, onConfirm) {
+    const modal = document.getElementById('confirm-modal');
+    const msgEl = document.getElementById('confirm-message');
+    const yesBtn = document.getElementById('confirm-yes');
+    const noBtn = document.getElementById('confirm-no');
+
+    msgEl.textContent = message;
+    modal.classList.remove('hidden');
+
+    const cleanup = () => {
+        modal.classList.add('hidden');
+        yesBtn.removeEventListener('click', handleYes);
+        noBtn.removeEventListener('click', handleNo);
+    };
+
+    const handleYes = () => {
+        cleanup();
+        onConfirm();
+    };
+
+    const handleNo = () => {
+        cleanup();
+    };
+
+    yesBtn.addEventListener('click', handleYes);
+    noBtn.addEventListener('click', handleNo);
+}
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    if (type === 'error') icon = '❌';
+
+    toast.innerHTML = `
+        <span>${icon}</span>
+        <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
 }
 
 function openInMaps(lat, lng) {

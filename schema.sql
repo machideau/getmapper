@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS locations (
     description TEXT,
     lat DOUBLE PRECISION NOT NULL,
     lng DOUBLE PRECISION NOT NULL,
+    image_urls TEXT[],
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

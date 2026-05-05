@@ -19,7 +19,8 @@ export const Storage = {
                 type: location.type || 'Autre',
                 description: location.description,
                 lat: location.lat,
-                lng: location.lng
+                lng: location.lng,
+                image_urls: location.image_urls
             }]);
 
         if (error) {
@@ -61,7 +62,8 @@ export const Storage = {
                 name: location.name,
                 campus: location.campus,
                 type: location.type,
-                description: location.description
+                description: location.description,
+                image_urls: location.image_urls
             })
             .eq('id', id);
 
@@ -70,5 +72,45 @@ export const Storage = {
             throw error;
         }
         return data;
+    },
+
+    async uploadImage(blob, fileName) {
+        const { data, error } = await _supabase.storage
+            .from('location-images')
+            .upload(fileName, blob, {
+                cacheControl: '3600',
+                upsert: true
+            });
+
+        if (error) {
+            console.error('Error uploading to Storage:', error);
+            throw error;
+        }
+
+        const { data: publicUrlData } = _supabase.storage
+            .from('location-images')
+            .getPublicUrl(fileName);
+
+        return publicUrlData.publicUrl;
+    },
+
+    // [MODIFY] src/storage.js
+    subscribeToChanges(callback) {
+        const channel = _supabase
+            .channel('schema-db-changes')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'locations'
+            }, (payload) => {
+                callback(payload);
+            })
+            .subscribe((status) => {
+                if (status === 'CHANNEL_ERROR') {
+                    console.error('Erreur de connexion Realtime. Vérifiez les paramètres de réplication Supabase.');
+                }
+            });
+        return channel;
     }
+
 };

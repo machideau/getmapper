@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UK Campus Locator | Database de Salles</title>
-    <meta name="description" content="Créez votre base de données des salles et bâtiments de l'UK avec géolocalisation précise.">
+    <meta name="description"
+        content="Créez votre base de données des salles et bâtiments de l'UK avec géolocalisation précise.">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,84 +16,116 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 </head>
+
 <body class="dark-theme">
     <div id="app">
         <div id="map"></div>
-        
+
         <div class="overlay">
-            <header>
-                <h1>UK <span>Mapper</span></h1>
-                <p>Database des Salles & Bâtiments</p>
-            </header>
+            <div class="scroll-container">
+                <header>
+                    <h1>UK <span>Mapper</span></h1>
+                    <p>Database des Salles & Bâtiments</p>
+                </header>
 
-            <main>
-                <div id="status-indicator" class="hidden">
-                    <div class="pulse"></div>
-                    <span id="status-text">Localisation en cours...</span>
-                </div>
+                <main>
+                    <div id="status-indicator" class="hidden">
+                        <div class="pulse"></div>
+                        <span id="status-text">Localisation en cours...</span>
+                    </div>
 
-                <div id="capture-card" class="glass-card hidden">
-                    <h3>Nouvelle Position</h3>
-                    <div class="coords">
-                        <span id="lat">0.0000</span>, <span id="lng">0.0000</span>
-                    </div>
-                    <div class="campus-selection">
-                        <label>
-                            <input type="radio" name="campus" value="Sud" checked>
-                            <span>Campus Sud</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="campus" value="Nord">
-                            <span>Campus Nord</span>
-                        </label>
-                    </div>
-                    <div class="input-group">
-                        <div class="custom-select" id="type-select-container">
-                            <div class="select-trigger" id="select-trigger">
-                                <span id="selected-type-text">Autre</span>
-                                <svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                            </div>
-                            <div class="select-options" id="select-options">
-                                <div class="option" data-value="Amphi">Amphi</div>
-                                <div class="option" data-value="Salle de cours">Salle de cours</div>
-                                <div class="option" data-value="Bureau">Bureau</div>
-                                <div class="option" data-value="Labo">Labo</div>
-                                <div class="option" data-value="Cafétéria">Cafétéria</div>
-                                <div class="option" data-value="Bibliothèque">Bibliothèque</div>
-                                <div class="option selected" data-value="Autre">Autre</div>
-                            </div>
-                            <input type="hidden" id="location-type" value="Autre">
+                    <div id="capture-card" class="glass-card hidden">
+                        <h3>Nouvelle Position</h3>
+                        <div class="coords">
+                            <span id="lat">0.0000</span>, <span id="lng">0.0000</span>
                         </div>
-                        
-                        <input type="text" id="location-name" placeholder="Nom de la salle ou bâtiment..." autocomplete="off">
-                        <textarea id="location-description" placeholder="Description du bâtiment ou de la salle..." rows="2"></textarea>
-                        <input type="hidden" id="location-id">
-                        <button id="save-btn" class="primary-btn">Sauvegarder</button>
-                    </div>
-                    <button id="cancel-btn" class="text-btn">Annuler</button>
-                </div>
+                        <div class="photo-section">
+                            <div id="photo-gallery" class="photo-gallery hidden">
+                                <!-- Thumbnails will be injected here -->
+                            </div>
+                            <div id="camera-container" class="camera-container hidden">
+                                <video id="video" autoplay playsinline></video>
+                                <div class="camera-overlay"></div>
+                                <button id="shutter-btn" class="shutter-btn">
+                                    <div class="shutter-icon"></div>
+                                </button>
+                            </div>
+                            <button id="capture-btn" class="secondary-btn">
+                                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path
+                                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span>Ajouter des photos</span>
+                            </button>
+                            <canvas id="canvas" style="display:none;"></canvas>
+                        </div>
 
-                <div id="list-container" class="glass-card">
-                    <div class="list-header">
-                        <h2>Positions Enregistrées</h2>
-                        <span id="count">0</span>
-                    </div>
-                    
-                    <div class="search-box">
-                        <input type="text" id="search-input" placeholder="Rechercher une salle..." autocomplete="off">
+                        <div class="campus-selection">
+                            <label>
+                                <input type="radio" name="campus" value="Sud" checked>
+                                <span>Campus Sud</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="campus" value="Nord">
+                                <span>Campus Nord</span>
+                            </label>
+                        </div>
+                        <div class="input-group">
+                            <div class="custom-select" id="type-select-container">
+                                <div class="select-trigger" id="select-trigger">
+                                    <span id="selected-type-text">Amphi</span>
+                                    <svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path d="M6 9l6 6 6-6" />
+                                    </svg>
+                                </div>
+                                <div class="select-options" id="select-options">
+                                    <div class="option" data-value="Amphi">Amphi</div>
+                                    <div class="option" data-value="Salle de cours">Salle de cours</div>
+                                    <div class="option" data-value="Bureau">Bureau</div>
+                                    <div class="option" data-value="Labo">Labo</div>
+                                    <div class="option" data-value="Cafétéria">Cafétéria</div>
+                                    <div class="option" data-value="Bibliothèque">Bibliothèque</div>
+                                    <div class="option selected" data-value="Autre">Autre</div>
+                                </div>
+                                <input type="hidden" id="location-type" value="Amphi">
+                            </div>
+
+                            <input type="text" id="location-name" placeholder="Nom de la salle ou bâtiment..."
+                                autocomplete="off">
+                            <textarea id="location-description" placeholder="Description du bâtiment ou de la salle..."
+                                rows="2"></textarea>
+                            <input type="hidden" id="location-id">
+                            <button id="save-btn" class="primary-btn">Sauvegarder</button>
+                        </div>
+                        <button id="cancel-btn" class="text-btn">Annuler</button>
                     </div>
 
-                    <div class="filter-tabs">
-                        <button class="filter-tab active" data-filter="all">Tous</button>
-                        <button class="filter-tab" data-filter="Sud">Sud</button>
-                        <button class="filter-tab" data-filter="Nord">Nord</button>
-                    </div>
+                    <div id="list-container" class="glass-card">
+                        <div class="list-header">
+                            <h2>Positions Enregistrées</h2>
+                            <span id="count">0</span>
+                        </div>
 
-                    <div id="location-list" class="scrollable">
-                        <div class="empty-state">Chargement...</div>
+                        <div class="search-box">
+                            <input type="text" id="search-input" placeholder="Rechercher une salle..."
+                                autocomplete="off">
+                        </div>
+
+                        <div class="filter-tabs">
+                            <button class="filter-tab active" data-filter="all">Tous</button>
+                            <button class="filter-tab" data-filter="Sud">Sud</button>
+                            <button class="filter-tab" data-filter="Nord">Nord</button>
+                        </div>
+
+                        <div id="location-list" class="scrollable">
+                            <div class="empty-state">Chargement...</div>
+                        </div>
                     </div>
-                </div>
-            </main>
+                </main>
+            </div>
 
             <div class="fab-container">
                 <button id="get-btn" class="fab">
@@ -102,6 +136,19 @@
         </div>
     </div>
 
+        <div id="confirm-modal" class="modal-overlay hidden">
+            <div class="confirm-card glass-card">
+                <p id="confirm-message">Voulez-vous vraiment continuer ?</p>
+                <div class="confirm-btns">
+                    <button id="confirm-yes" class="primary-btn">Oui</button>
+                    <button id="confirm-no" class="secondary-btn">Non</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast-container"></div>
+
     <script type="module" src="/src/main.js"></script>
 </body>
+
 </html>
