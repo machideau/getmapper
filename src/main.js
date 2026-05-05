@@ -8,6 +8,7 @@ let currentMarker;
 let tempCoords = null;
 let allLocations = [];
 let markerClusterGroup;
+let accuracyCircle;
 let currentFilter = 'all';
 let currentSearch = '';
 let stream = null;
@@ -179,9 +180,22 @@ function captureLocation() {
 
             map.setView([latitude, longitude], 18);
             if (currentMarker) map.removeLayer(currentMarker);
+            if (accuracyCircle) map.removeLayer(accuracyCircle);
+            
             currentMarker = L.marker([latitude, longitude]).addTo(map)
                 .bindPopup("Position actuelle")
                 .openPopup();
+
+            // Add accuracy circle
+            if (position.coords.accuracy) {
+                accuracyCircle = L.circle([latitude, longitude], {
+                    radius: position.coords.accuracy,
+                    color: 'var(--primary)',
+                    fillColor: 'var(--primary)',
+                    fillOpacity: 0.15,
+                    weight: 1
+                }).addTo(map);
+            }
 
             status.classList.add('hidden');
         },
@@ -213,6 +227,7 @@ function hideCaptureCard() {
     document.getElementById('list-container').classList.remove('hidden');
     document.getElementById('get-btn').classList.remove('hidden');
     if (currentMarker) map.removeLayer(currentMarker);
+    if (accuracyCircle) map.removeLayer(accuracyCircle);
     tempCoords = null;
     stopCamera();
 }
@@ -343,8 +358,11 @@ async function handleSave() {
 
             // Upload all images in parallel
             const uploadPromises = capturedBlobs.map(async (item, index) => {
-                const fileName = `${cleanName}_${cleanCampus}_${index}.jpg`;
-                return await Storage.uploadImage(item.blob, fileName);
+                const compressed = await compressImage(item.blob, 0.7);
+                const isWebP = compressed.type === 'image/webp';
+                const extension = isWebP ? 'webp' : 'jpg';
+                const fileName = `${cleanName}_${cleanCampus}_${index}.${extension}`;
+                return await Storage.uploadImage(compressed, fileName);
             });
 
             const results = await Promise.all(uploadPromises);
@@ -450,6 +468,11 @@ function renderList() {
         item.querySelector('.nav-btn').addEventListener('click', () => openInMaps(loc.lat, loc.lng));
         item.querySelector('.edit-btn').addEventListener('click', () => startEdit(loc));
         item.querySelector('.delete-btn').addEventListener('click', () => deleteLoc(loc.id));
+        
+        // Lightbox trigger
+        item.querySelectorAll('.images-container img').forEach(img => {
+            img.addEventListener('click', () => openLightbox(img.src));
+        });
 
         list.appendChild(item);
 
@@ -565,6 +588,21 @@ function showConfirm(message, onConfirm) {
     noBtn.addEventListener('click', handleNo);
 }
 
+function openLightbox(url) {
+    const lightbox = document.getElementById('lightbox');
+    const img = document.getElementById('lightbox-img');
+    const closeBtn = document.getElementById('lightbox-close');
+
+    img.src = url;
+    lightbox.classList.remove('hidden');
+
+    const close = () => lightbox.classList.add('hidden');
+    closeBtn.onclick = close;
+    lightbox.onclick = (e) => {
+        if (e.target === lightbox) close();
+    };
+}
+
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
@@ -584,6 +622,47 @@ function showToast(message, type = 'info') {
     setTimeout(() => {
         toast.remove();
     }, 3000);
+}
+
+async function compressImage(blob, quality) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.src = URL.createObjectURL(blob);
+        img.onload = () => {
+            URL.revokeObjectURL(img.src);
+            const canvas = document.createElement('canvas');
+            
+            // Limit to 4K for safety, but otherwise keep original size
+            const MAX_DIM = 4096;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > MAX_DIM || height > MAX_DIM) {
+                if (width > height) {
+                    height = (MAX_DIM / width) * height;
+                    width = MAX_DIM;
+                } else {
+                    width = (MAX_DIM / height) * width;
+                    height = MAX_DIM;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Try WebP first for better compression
+            canvas.toBlob((result) => {
+                if (!result) {
+                    // Fallback to JPEG
+                    canvas.toBlob((res) => resolve(res), 'image/jpeg', quality);
+                } else {
+                    resolve(result);
+                }
+            }, 'image/webp', quality);
+        };
+    });
 }
 
 function openInMaps(lat, lng) {
